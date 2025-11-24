@@ -7,15 +7,14 @@ import com.vrms.ngo_posting_service.entity.NgoPost;
 import com.vrms.ngo_posting_service.entity.PostStatus;
 import com.vrms.ngo_posting_service.exception.ForbiddenException;
 import com.vrms.ngo_posting_service.exception.ResourceNotFoundException;
-import com.vrms.ngo_posting_service.exception.UnauthorizedException;
 import com.vrms.ngo_posting_service.repository.NgoPostRepository;
 import com.vrms.ngo_posting_service.service.NgoPostService;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashSet;
-import java.util.Set;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -205,6 +204,26 @@ public class NgoPostServiceImpl implements NgoPostService {
         log.info(" Successfully unregistered volunteer {} from posting {}", volunteerId, postingId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getVolunteersForPosting(Long postingId) {
+        log.info("📋 Getting volunteers for posting {}", postingId);
+        
+        NgoPost post = repository.findById(postingId)
+            .orElseThrow(() -> new ResourceNotFoundException("Posting not found with id: " + postingId));
+
+        Set<Long> registeredVolunteers = post.getVolunteersRegistered();
+        
+        if (registeredVolunteers == null || registeredVolunteers.isEmpty()) {
+            log.info("📭 No volunteers registered for posting {}", postingId);
+            return new ArrayList<>();
+        }
+        
+        List<Long> volunteerIds = new ArrayList<>(registeredVolunteers);
+        log.info("✅ Found {} volunteers for posting {}", volunteerIds.size(), postingId);
+        
+        return volunteerIds;
+    }
 
     private NgoPostResponse mapToResponse(NgoPost post) {
         NgoPostResponse response = new NgoPostResponse();

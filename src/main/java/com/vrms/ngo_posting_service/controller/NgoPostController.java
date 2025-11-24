@@ -3,6 +3,7 @@ package com.vrms.ngo_posting_service.controller;
 import com.vrms.ngo_posting_service.dto.CreateNgoPostRequest;
 import com.vrms.ngo_posting_service.dto.NgoPostResponse;
 import com.vrms.ngo_posting_service.dto.UpdateNgoPostRequest;
+import com.vrms.ngo_posting_service.dto.VolunteerDTO;
 import com.vrms.ngo_posting_service.exception.ForbiddenException;
 import com.vrms.ngo_posting_service.service.NgoPostService;
 
@@ -11,14 +12,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
 
 @CrossOrigin(
     origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:8080"},
@@ -33,6 +37,10 @@ import org.springframework.web.bind.annotation.*;
 public class NgoPostController {
 
     private final NgoPostService service;
+    private final RestTemplate restTemplate;
+    @Value("${user.service.url:http://localhost:8082}")
+    private String userServiceUrl;
+
 
     /**
      * Create a new posting (NGO or ADMIN only)
@@ -214,6 +222,86 @@ log.info("➖ Unregistering volunteer {} from posting {}", volunteerId, postingI
         service.unregisterVolunteer(postingId, volunteerId);
         return ResponseEntity.ok().build();
 }
+
+    @GetMapping("/{postingId}/volunteers")
+    public ResponseEntity<List<Long>> getVolunteersForPosting(  // or Map<String, Object> or Long
+                                                                        @PathVariable Long postingId,
+                                                                        HttpServletRequest httpRequest) {
+
+        // Implementation
+        return ResponseEntity.ok(service.getVolunteersForPosting(postingId));
+    }
+
+    /**
+     * Get volunteer details for NGO's own postings
+     * Add this method to your NgoPostController class
+     */
+    @GetMapping("/{postingId}/volunteers/{volunteerId}/details")
+    public ResponseEntity<Object> getVolunteerDetailsForPosting(
+            @PathVariable Long postingId,
+            @PathVariable Long volunteerId,
+            HttpServletRequest httpRequest) {
+
+        try {
+            Long userId = (Long) httpRequest.getAttribute("userId");
+            String role = (String) httpRequest.getAttribute("role");
+            String authHeader = httpRequest.getHeader("Authorization");
+
+            log.info("GET VOLUNTEER DETAILS - PostingId: {}, VolunteerId: {}, NGO UserId: {}, Role: {}",
+                    postingId, volunteerId, userId, role);
+
+            // Verify NGO owns this posting or is ADMIN
+            if ("NGO".equals(role)) {
+                // Get posting details to verify ownership
+                try {
+                    NgoPostResponse posting = service.getPostById(postingId);
+                    if (!posting.getNgoId().equals(userId)) {
+                        log.warn("FORBIDDEN: NGO {} attempted to access volunteer details for posting {} owned by NGO {}",
+                                userId, postingId, posting.getNgoId());
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body("You can only access volunteer details for your own postings");
+                    }
+                } catch (Exception e) {
+                    log.error("Error verifying posting ownership: {}", e.getMessage());
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body("Posting not found");
+                }
+
+                // Verify volunteer is registered for this posting
+                List<Long> volunteersForPosting = service.getVolunteersForPosting(postingId);
+                if (!volunteersForPosting.contains(volunteerId)) {
+                    log.warn("FORBIDDEN: Volunteer {} is not registered for posting {}", volunteerId, postingId);
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body("Volunteer is not registered for this posting");
+                }
+            }
+
+            // Forward request to User Service to get volunteer details
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", authHeader);
+            headers.set("Content-Type", "application/json");
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            String volunteerEndpoint = userServiceUrl + "/api/v1/users/volunteers/" + volunteerId + "/ngo-access";
+
+            log.info("Forwarding request to User Service: {}", volunteerEndpoint);
+
+            ResponseEntity<Object> response = restTemplate.exchange(
+                    volunteerEndpoint,
+                    HttpMethod.GET,
+                    entity,
+                    Object.class
+            );
+
+            log.info("Successfully retrieved volunteer details for volunteer {} from User Service", volunteerId);
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error fetching volunteer details: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching volunteer details: " + e.getMessage());
+        }
+    }
 
 }
 
