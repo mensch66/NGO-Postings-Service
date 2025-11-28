@@ -2,7 +2,8 @@
 
 ## Overview
 
-The NGO Posting Service is a core microservice within the **Volunteer Resource Management System (VRMS)** that manages NGO posting creation, updates, volunteer registrations, and posting lifecycle management. This service acts as the central hub for NGO organizations to publish volunteer opportunities and track volunteer participation.
+The NGO Posting Service is a core microservice within the **Volunteer Resource Management System (VRMS)** that manages NGO posting creation, updates, volunteer registrations, and posting lifecycle management. This service acts as the central hub for NGO organizations to publish volunteer opportunities and track volunteer participation.<br>
+<a href="https://cla-assistant.io/udaysingh21/Volunteer-Resource-Management-System"><img src="https://cla-assistant.io/readme/badge/udaysingh21/Volunteer-Resource-Management-System" alt="CLA assistant" /></a>
 
 ## VRMS Ecosystem
 
