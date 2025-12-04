@@ -2,7 +2,8 @@
 
 ## 1. Project Overview
 
-The **NGO Posting Service** is a core microservice within the **Volunteer Resource Management System (VRMS)**, serving as the central hub for managing volunteer opportunities. Its primary function is to handle the creation, update, and lifecycle management of NGO postings, volunteer registrations, and associated profile management.
+The NGO Posting Service is a core microservice within the **Volunteer Resource Management System (VRMS)** that manages NGO posting creation, updates, volunteer registrations, and posting lifecycle management. This service acts as the central hub for NGO organizations to publish volunteer opportunities and track volunteer participation.<br>
+<a href="https://cla-assistant.io/udaysingh21/Volunteer-Resource-Management-System"><img src="https://cla-assistant.io/readme/badge/udaysingh21/Volunteer-Resource-Management-System" alt="CLA assistant" /></a>
 
 ### VRMS Ecosystem
 
@@ -214,6 +215,4 @@ curl http://localhost:8082/actuator/health
 4. Push to branch (`git push origin feature/new-feature-name`).
 5. Open a Pull Request.
 
-### 8.2. License and Support
-* **License**: This project is part of the **Volunteer Resource Management System (VRMS)**.
-* **Support**: For questions, please create an issue in the repository or check the API documentation.
+**Part of the Volunteer Resource Management System (VRMS) **
